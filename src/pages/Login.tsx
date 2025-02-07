@@ -1,13 +1,15 @@
 import { useState } from "react";  
 import axios from "axios";
 import {
-  Box, Button, Input, VStack, Heading, InputGroup, InputRightElement, FormControl, FormLabel, Text, Spinner, IconButton
+  Box, Button, Input, VStack, Heading, InputGroup, InputRightElement,
+  FormControl, FormLabel, IconButton, useToast, Alert, AlertIcon, Spinner
 } from "@chakra-ui/react";
 import { ViewIcon, ViewOffIcon } from "@chakra-ui/icons";
 import { useNavigate } from "react-router-dom";
 
 const Login = () => {
   const navigate = useNavigate();
+  const toast = useToast();  // ✅ Inisialisasi toast Chakra UI
   
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -15,15 +17,14 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  // Toggle visibility password
+  // ✅ Toggle password visibility
   const togglePasswordVisibility = () => {
-    console.log("👁️ Tombol intip password diklik");
     setShowPassword((prev) => !prev);
   };
 
-  // Handle login function
+  // ✅ Handle login function
   const handleLogin = async () => {
-    setErrorMessage(""); 
+    setErrorMessage("");
     setLoading(true);
 
     if (!username.trim() || !password.trim()) {
@@ -34,26 +35,39 @@ const Login = () => {
 
     try {
       const response = await axios.post("https://backendtodolist-production-e715.up.railway.app/login", {
-        username,
-        password
+        username: username.trim(),
+        password: password.trim(),
       });
 
       localStorage.setItem("token", response.data.token);
-      alert("Login berhasil!");
-      navigate("/home"); 
+
+      // ✅ Tampilkan notifikasi sukses
+      toast({
+        title: "Login Berhasil!",
+        description: "Anda berhasil masuk.",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+        position: "top-right",
+      });
+
+      setTimeout(() => navigate("/home"), 1500);
     } catch (error: any) {
       console.error("❌ Error saat login:", error.response?.data);
+
+      // ✅ Gunakan notifikasi error Chakra UI
+      toast({
+        title: "Gagal Login!",
+        description: error.response?.data?.message || "Username atau Password salah!",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+        position: "top-right",
+      });
+
       setErrorMessage(error.response?.data?.message || "Gagal melakukan login");
     } finally {
       setLoading(false);
-    }
-  };
-
-  // Menjalankan login saat menekan Enter
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      handleLogin();
     }
   };
 
@@ -66,7 +80,12 @@ const Login = () => {
       <Heading size="lg" textAlign="center" mb={6}>Login</Heading>
       
       <VStack spacing={4} align="stretch">
-        {errorMessage && <Text color="red.500">{errorMessage}</Text>}
+        {errorMessage && (
+          <Alert status="error" borderRadius="md">
+            <AlertIcon />
+            {errorMessage}
+          </Alert>
+        )}
 
         <FormControl>
           <FormLabel>Username</FormLabel>
@@ -74,7 +93,6 @@ const Login = () => {
             placeholder="Username" 
             value={username} 
             onChange={(e) => setUsername(e.target.value)}
-            onKeyDown={handleKeyPress} 
           />
         </FormControl>
 
@@ -86,16 +104,13 @@ const Login = () => {
               placeholder="Password"
               value={password} 
               onChange={(e) => setPassword(e.target.value)}
-              onKeyDown={handleKeyPress} 
             />
-            <InputRightElement width="3rem">
+            <InputRightElement>
               <IconButton
                 aria-label="Toggle password visibility"
-                icon={showPassword ? <ViewOffIcon color="black" boxSize={5} /> : <ViewIcon color="black" boxSize={5} />}
+                icon={showPassword ? <ViewOffIcon /> : <ViewIcon />}
                 onClick={togglePasswordVisibility}
-                size="md"
                 variant="ghost"
-                _hover={{ bg: "gray.200" }}
               />
             </InputRightElement>
           </InputGroup>
