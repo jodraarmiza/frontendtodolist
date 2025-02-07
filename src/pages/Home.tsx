@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import {
- Button, Input, VStack, HStack, List, ListItem, IconButton, Heading, Text, Spacer, Checkbox,
-  useToast, Tag, TagLabel, TagLeftIcon, Container, Flex
+  Button, Input, VStack, HStack, List, ListItem, IconButton, Heading, Text, Spacer, Checkbox,
+  useToast, Tag, TagLabel, TagLeftIcon, Container, Flex, AlertDialog, AlertDialogOverlay,
+  AlertDialogContent, AlertDialogHeader, AlertDialogBody, AlertDialogFooter
 } from "@chakra-ui/react";
 import { FaTrash, FaEdit, FaClock, FaCalendarAlt, FaArrowLeft, FaArrowRight, FaSignOutAlt } from "react-icons/fa";
 import DatePicker from "react-datepicker";
@@ -26,6 +27,8 @@ const Home = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [currentTime, setCurrentTime] = useState<string>("");
+  const [isClearOpen, setIsClearOpen] = useState(false);
+  const cancelRef = React.useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -113,9 +116,23 @@ const Home = () => {
   };
 
   const handleToggleComplete = (taskId: number) => {
-    setTasks(tasks.map((task) => 
+    setTasks(tasks.map((task) =>
       task.id === taskId ? { ...task, completed: !task.completed } : task
     ));
+  };
+
+  const handleClearAll = () => {
+    setTasks(prevTasks => prevTasks.filter(task => !isSameDay(task.date, selectedDate)));
+    setIsClearOpen(false);
+
+    toast({
+      title: "Semua tugas dihapus!",
+      description: `Semua tugas untuk tanggal ${format(selectedDate, "dd/MM/yyyy")} telah dihapus.`,
+      status: "error",
+      duration: 2000,
+      isClosable: true,
+      position: "top-right",
+    });
   };
 
   const filteredTasks = tasks.filter((task) => isSameDay(task.date, selectedDate));
@@ -129,28 +146,31 @@ const Home = () => {
         </Button>
       </Flex>
 
+      {/* ✅ Menampilkan Tanggal Hari Ini */}
       <VStack mb={4}>
         <HStack>
           <FaClock />
-          <Text fontSize="xl">Waktu Sekarang: {currentTime}</Text>
+          <Text fontSize="xl" fontWeight="bold">
+            Tanggal Hari Ini: {format(new Date(), "EEEE, dd/MM/yyyy")}
+          </Text>
         </HStack>
       </VStack>
 
+      {/* ✅ Navigasi Tanggal dengan Kalender */}
       <HStack justify="center" mb={6} w="full">
         <IconButton icon={<FaArrowLeft />} aria-label="Previous Day" onClick={() => setSelectedDate(subDays(selectedDate, 1))} size="lg" />
-        <Text fontSize="2xl" fontWeight="bold">{format(selectedDate, "dd/MM/yyyy")}</Text>
+        <DatePicker
+          selected={selectedDate}
+          onChange={(date: Date | null) => setSelectedDate(date || new Date())}
+          dateFormat="dd/MM/yyyy"
+          customInput={<Button leftIcon={<FaCalendarAlt />} colorScheme="blue" size="lg">Pilih Tanggal</Button>}
+        />
         <IconButton icon={<FaArrowRight />} aria-label="Next Day" onClick={() => setSelectedDate(addDays(selectedDate, 1))} size="lg" />
       </HStack>
 
       <HStack mb={6} w="full">
         <Input placeholder="Tambah tugas..." value={newTask} onChange={(e) => setNewTask(e.target.value)} onKeyDown={handleKeyPress} size="lg" />
-        <DatePicker
-          selected={selectedDate}
-          onChange={(date: Date | null) => setSelectedDate(date || new Date())}
-          dateFormat="dd/MM/yyyy"
-          minDate={new Date()}
-          customInput={<Button leftIcon={<FaCalendarAlt />} colorScheme="blue" size="lg">Pilih Tanggal</Button>}
-        />
+        <Button colorScheme="red" size="lg" onClick={() => setIsClearOpen(true)}>Hapus Semua</Button>
       </HStack>
 
       <Button colorScheme="green" width="full" onClick={handleAddTask} size="lg">
@@ -158,30 +178,18 @@ const Home = () => {
       </Button>
 
       <List spacing={4} mt={6} w="full">
-        {filteredTasks.length === 0 ? (
-          <Text textAlign="center" color="gray.500" fontSize="xl">Tidak ada tugas untuk tanggal ini</Text>
-        ) : (
-          filteredTasks.map((task, index) => (
-            <ListItem key={task.id} p={4} borderWidth={1} borderRadius="lg" w="full">
-              <HStack w="full">
-                <Text fontWeight="bold" fontSize="lg">#{index + 1}</Text>
-
-                <Checkbox isChecked={task.completed} onChange={() => handleToggleComplete(task.id)} size="lg" colorScheme="green" />
-
-                <Text fontSize="lg" textDecoration={task.completed ? "line-through" : "none"}>{task.text}</Text>
-
-                <Tag size="md" colorScheme="blue">
-                  <TagLeftIcon as={FaClock} />
-                  <TagLabel>Dibuat: {task.createdAt} | Diedit: {task.updatedAt}</TagLabel>
-                </Tag>
-
-                <Spacer />
-                <IconButton icon={<FaEdit />} aria-label="Edit" size="md" colorScheme="blue" onClick={() => handleEditTask(task.id)} />
-                <IconButton icon={<FaTrash />} aria-label="Delete" size="md" colorScheme="red" onClick={() => handleDeleteTask(task.id)} />
-              </HStack>
-            </ListItem>
-          ))
-        )}
+        {filteredTasks.map((task, index) => (
+          <ListItem key={task.id} p={4} borderWidth={1} borderRadius="lg" w="full">
+            <HStack w="full">
+              <Text fontWeight="bold" fontSize="lg">#{index + 1}</Text>
+              <Checkbox isChecked={task.completed} onChange={() => handleToggleComplete(task.id)} size="lg" colorScheme="green" />
+              <Text fontSize="lg" textDecoration={task.completed ? "line-through" : "none"}>{task.text}</Text>
+              <Spacer />
+              <IconButton icon={<FaEdit />} aria-label="Edit" size="md" colorScheme="blue" onClick={() => handleEditTask(task.id)} />
+              <IconButton icon={<FaTrash />} aria-label="Delete" size="md" colorScheme="red" onClick={() => handleDeleteTask(task.id)} />
+            </HStack>
+          </ListItem>
+        ))}
       </List>
     </Container>
   );
