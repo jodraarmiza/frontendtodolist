@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import {
-  Box, Button, Input, VStack, HStack, List, ListItem, IconButton, Heading, Text, Spacer, Checkbox,
-  useToast, Tag, TagLabel, TagLeftIcon
+ Button, Input, VStack, HStack, List, ListItem, IconButton, Heading, Text, Spacer, Checkbox,
+  useToast, Tag, TagLabel, TagLeftIcon, Container, Flex
 } from "@chakra-ui/react";
 import { FaTrash, FaEdit, FaClock, FaCalendarAlt, FaArrowLeft, FaArrowRight, FaSignOutAlt } from "react-icons/fa";
 import DatePicker from "react-datepicker";
@@ -10,9 +10,11 @@ import { format, addDays, subDays, isSameDay } from "date-fns";
 import { useNavigate } from "react-router-dom";
 
 interface Task {
+  id: number;
   text: string;
   date: Date;
   createdAt: string;
+  updatedAt: string;
   completed: boolean;
 }
 
@@ -25,7 +27,6 @@ const Home = () => {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [currentTime, setCurrentTime] = useState<string>("");
 
-  // ✅ Update jam real-time setiap detik
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTime(format(new Date(), "HH:mm:ss"));
@@ -33,18 +34,18 @@ const Home = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // ✅ Fungsi Logout
   const handleLogout = () => {
     localStorage.removeItem("token");
     navigate("/auth");
   };
 
-  // ✅ Tambah / Edit Tugas untuk tanggal yang dipilih
   const handleAddTask = () => {
     if (newTask.trim() !== "") {
       if (editingIndex !== null) {
-        const updatedTasks = tasks.map((task, index) =>
-          index === editingIndex ? { ...task, text: newTask } : task
+        const updatedTasks = tasks.map((task) =>
+          task.id === editingIndex
+            ? { ...task, text: newTask, updatedAt: new Date().toLocaleString() }
+            : task
         );
         setTasks(updatedTasks);
         setEditingIndex(null);
@@ -61,10 +62,12 @@ const Home = () => {
         setTasks([
           ...tasks,
           {
+            id: tasks.length + 1,
             text: newTask,
             date: selectedDate,
             completed: false,
-            createdAt: format(new Date(), "dd/MM/yyyy HH:mm:ss"), // ✅ Simpan waktu dibuatnya
+            createdAt: new Date().toLocaleString(),
+            updatedAt: new Date().toLocaleString(),
           },
         ]);
 
@@ -81,7 +84,6 @@ const Home = () => {
     }
   };
 
-  // ✅ Fungsi Tambah Tugas dengan Tombol Enter
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -89,9 +91,8 @@ const Home = () => {
     }
   };
 
-  // ✅ Hapus tugas tertentu
-  const handleDeleteTask = (index: number) => {
-    setTasks(tasks.filter((_, i) => i !== index));
+  const handleDeleteTask = (taskId: number) => {
+    setTasks(prevTasks => prevTasks.filter((task) => task.id !== taskId));
 
     toast({
       title: "Tugas Dihapus!",
@@ -103,94 +104,86 @@ const Home = () => {
     });
   };
 
-  // ✅ Edit tugas
-  const handleEditTask = (index: number) => {
-    setNewTask(tasks[index].text);
-    setEditingIndex(index);
+  const handleEditTask = (taskId: number) => {
+    const taskToEdit = tasks.find((task) => task.id === taskId);
+    if (taskToEdit) {
+      setNewTask(taskToEdit.text);
+      setEditingIndex(taskId);
+    }
   };
 
-  // ✅ Toggle selesai/tidak selesai dengan warna hijau jika selesai
-  const handleToggleComplete = (index: number) => {
-    setTasks(tasks.map((task, i) => (i === index ? { ...task, completed: !task.completed } : task)));
+  const handleToggleComplete = (taskId: number) => {
+    setTasks(tasks.map((task) => 
+      task.id === taskId ? { ...task, completed: !task.completed } : task
+    ));
   };
 
-  // ✅ Filter hanya tugas yang sesuai dengan tanggal yang dipilih
   const filteredTasks = tasks.filter((task) => isSameDay(task.date, selectedDate));
 
   return (
-    <Box maxW="lg" mx="auto" py={8} px={4}>
-      {/* Navbar dengan tombol Logout */}
-      <HStack justify="space-between" mb={4}>
-        <Heading>To-Do List</Heading>
-        <Button colorScheme="red" leftIcon={<FaSignOutAlt />} onClick={handleLogout}>
+    <Container maxW="container.xl" py={8} px={4}>
+      <Flex justify="space-between" align="center" mb={6}>
+        <Heading size="xl">To-Do List</Heading>
+        <Button colorScheme="red" leftIcon={<FaSignOutAlt />} onClick={handleLogout} size="lg">
           Logout
         </Button>
-      </HStack>
+      </Flex>
 
-      {/* Jam Real-Time */}
       <VStack mb={4}>
         <HStack>
           <FaClock />
-          <Text fontSize="lg">Waktu Sekarang: {currentTime}</Text>
+          <Text fontSize="xl">Waktu Sekarang: {currentTime}</Text>
         </HStack>
       </VStack>
 
-      {/* Navigasi Tanggal */}
-      <HStack justify="center" mb={4}>
-        <IconButton icon={<FaArrowLeft />} aria-label="Previous Day" onClick={() => setSelectedDate(subDays(selectedDate, 1))} />
-        <Text fontSize="lg" fontWeight="bold">{format(selectedDate, "dd/MM/yyyy")}</Text>
-        <IconButton icon={<FaArrowRight />} aria-label="Next Day" onClick={() => setSelectedDate(addDays(selectedDate, 1))} />
+      <HStack justify="center" mb={6} w="full">
+        <IconButton icon={<FaArrowLeft />} aria-label="Previous Day" onClick={() => setSelectedDate(subDays(selectedDate, 1))} size="lg" />
+        <Text fontSize="2xl" fontWeight="bold">{format(selectedDate, "dd/MM/yyyy")}</Text>
+        <IconButton icon={<FaArrowRight />} aria-label="Next Day" onClick={() => setSelectedDate(addDays(selectedDate, 1))} size="lg" />
       </HStack>
 
-      {/* Input & Kalender */}
-      <HStack mb={4}>
-        <Input placeholder="Tambah tugas..." value={newTask} onChange={(e) => setNewTask(e.target.value)} onKeyDown={handleKeyPress} />
+      <HStack mb={6} w="full">
+        <Input placeholder="Tambah tugas..." value={newTask} onChange={(e) => setNewTask(e.target.value)} onKeyDown={handleKeyPress} size="lg" />
         <DatePicker
           selected={selectedDate}
           onChange={(date: Date | null) => setSelectedDate(date || new Date())}
           dateFormat="dd/MM/yyyy"
           minDate={new Date()}
-          customInput={<Button leftIcon={<FaCalendarAlt />} colorScheme="blue">Pilih Tanggal</Button>}
+          customInput={<Button leftIcon={<FaCalendarAlt />} colorScheme="blue" size="lg">Pilih Tanggal</Button>}
         />
       </HStack>
 
-      {/* Tombol Tambah */}
-      <Button colorScheme="green" width="full" onClick={handleAddTask}>
+      <Button colorScheme="green" width="full" onClick={handleAddTask} size="lg">
         {editingIndex !== null ? "Simpan" : "Tambah"}
       </Button>
 
-      {/* Daftar Tugas */}
-      <List spacing={3} mt={6}>
+      <List spacing={4} mt={6} w="full">
         {filteredTasks.length === 0 ? (
-          <Text textAlign="center" color="gray.500">Tidak ada tugas untuk tanggal ini</Text>
+          <Text textAlign="center" color="gray.500" fontSize="xl">Tidak ada tugas untuk tanggal ini</Text>
         ) : (
           filteredTasks.map((task, index) => (
-            <ListItem key={index} p={3} borderWidth={1} borderRadius="lg">
-              <HStack>
-                {/* Checkbox yang lebih besar dan berubah hijau saat selesai */}
-                <Checkbox
-                  isChecked={task.completed}
-                  onChange={() => handleToggleComplete(index)}
-                  size="lg"
-                  colorScheme="green"
-                />
-                <Text textDecoration={task.completed ? "line-through" : "none"}>{task.text}</Text>
+            <ListItem key={task.id} p={4} borderWidth={1} borderRadius="lg" w="full">
+              <HStack w="full">
+                <Text fontWeight="bold" fontSize="lg">#{index + 1}</Text>
 
-                {/* ✅ Tampilkan waktu dibuat */}
-                <Tag size="sm" colorScheme="blue">
+                <Checkbox isChecked={task.completed} onChange={() => handleToggleComplete(task.id)} size="lg" colorScheme="green" />
+
+                <Text fontSize="lg" textDecoration={task.completed ? "line-through" : "none"}>{task.text}</Text>
+
+                <Tag size="md" colorScheme="blue">
                   <TagLeftIcon as={FaClock} />
-                  <TagLabel>{task.createdAt}</TagLabel>
+                  <TagLabel>Dibuat: {task.createdAt} | Diedit: {task.updatedAt}</TagLabel>
                 </Tag>
 
                 <Spacer />
-                <IconButton icon={<FaEdit />} aria-label="Edit" size="sm" colorScheme="blue" onClick={() => handleEditTask(index)} />
-                <IconButton icon={<FaTrash />} aria-label="Delete" size="sm" colorScheme="red" onClick={() => handleDeleteTask(index)} />
+                <IconButton icon={<FaEdit />} aria-label="Edit" size="md" colorScheme="blue" onClick={() => handleEditTask(task.id)} />
+                <IconButton icon={<FaTrash />} aria-label="Delete" size="md" colorScheme="red" onClick={() => handleDeleteTask(task.id)} />
               </HStack>
             </ListItem>
           ))
         )}
       </List>
-    </Box>
+    </Container>
   );
 };
 
