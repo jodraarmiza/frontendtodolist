@@ -29,6 +29,8 @@ const Home = () => {
   const [isClearOpen, setIsClearOpen] = useState(false);
   const cancelRef = React.useRef<HTMLButtonElement>(null);
 
+  const today = new Date(); // Mendapatkan tanggal hari ini
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     navigate("/auth");
@@ -111,12 +113,18 @@ const Home = () => {
 
       <HStack justify="center" mb={6} w="full">
         <IconButton icon={<FaArrowLeft />} aria-label="Previous Day" onClick={() => setSelectedDate(subDays(selectedDate, 1))} size="lg" />
+        
+        {/* ✅ Menandai Tanggal Hari Ini di Kalender */}
         <DatePicker
           selected={selectedDate}
           onChange={(date: Date | null) => setSelectedDate(date || new Date())}
           dateFormat="dd/MM/yyyy"
           customInput={<Button leftIcon={<FaCalendarAlt />} colorScheme="blue" size="lg">Pilih Tanggal</Button>}
+          dayClassName={(date) =>
+            isSameDay(date, today) ? "today-highlight" : "" // Tambahkan class khusus untuk tanggal hari ini
+          }
         />
+
         <IconButton icon={<FaArrowRight />} aria-label="Next Day" onClick={() => setSelectedDate(addDays(selectedDate, 1))} size="lg" />
       </HStack>
 
@@ -167,6 +175,16 @@ const Home = () => {
           </AlertDialogContent>
         </AlertDialogOverlay>
       </AlertDialog>
+
+      {/* ✅ Tambahkan CSS untuk menyorot tanggal hari ini */}
+      <style>
+        {`
+          .today-highlight {
+            font-weight: bold;
+            color: #007bff !important;
+          }
+        `}
+      </style>
     </Container>
   );
 };
