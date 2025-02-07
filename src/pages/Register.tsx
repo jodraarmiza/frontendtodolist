@@ -52,7 +52,7 @@ const Register = () => {
     }
 
     try {
-      const response = await axios.post("http://192.168.1.36:8080/register", {
+      const response = await axios.post("https://backendtodolist-production-e715.up.railway.app/register", {
         username: trimmedUsername,
         password: trimmedPassword
       });
