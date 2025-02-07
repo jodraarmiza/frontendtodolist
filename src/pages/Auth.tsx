@@ -10,7 +10,7 @@ const Auth = () => {
 
   const handleLogin = async () => {
     try {
-      const response = await axios.post("http://192.168.1.36:8080/login", { username, password });
+      const response = await axios.post("https://backendtodolist-production-e715.up.railway.app/login", { username, password });
 
       if (response.status === 200) {
         localStorage.setItem("token", response.data.token); // Simpan token JWT
